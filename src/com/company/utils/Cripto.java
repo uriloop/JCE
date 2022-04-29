@@ -182,9 +182,9 @@ public class Cripto {
         try {
 
             SecretKey skey = null;
-            Cipher c = Cipher.getInstance("RSA/ECB/PKCS1Padding");
+            Cipher c = Cipher.getInstance("AES");
             c.init(Cipher.UNWRAP_MODE, pub);
-            skey = (SecretKey) c.unwrap(data[1], "RSA/ECB/PKCS1Padding", Cipher.SECRET_KEY);
+            skey = (SecretKey) c.unwrap(data[1], "AES", Cipher.SECRET_KEY);
 
             byte[] decryptedData = null;
 
@@ -193,12 +193,19 @@ public class Cripto {
                 decryptedData = cipher.doFinal(data[0]);
 
 
+            return this.decryptData(data[0],(PrivateKey) skey);
 
-            return decryptedData;
 
-
-        } catch (Exception ex) {
-            System.err.println("Ha succeït un error xifrant: " + ex);
+        } catch (NoSuchPaddingException e) {
+            e.printStackTrace();
+        } catch (IllegalBlockSizeException e) {
+            e.printStackTrace();
+        } catch (NoSuchAlgorithmException e) {
+            e.printStackTrace();
+        } catch (BadPaddingException e) {
+            e.printStackTrace();
+        } catch (InvalidKeyException e) {
+            e.printStackTrace();
         }
         return null;
     }
