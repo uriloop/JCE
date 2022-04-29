@@ -29,10 +29,10 @@ public class Cripto {
     public byte[] encryptData(byte[] data, PublicKey pub) {
         byte[] encryptedData = null;
         try {
-            Cipher cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding","SunJCE");
+            Cipher cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding", "SunJCE");
             cipher.init(Cipher.ENCRYPT_MODE, pub);
-            encryptedData =  cipher.doFinal(data);
-        } catch (Exception  ex) {
+            encryptedData = cipher.doFinal(data);
+        } catch (Exception ex) {
             System.err.println("Error xifrant: " + ex);
         }
         return encryptedData;
@@ -41,35 +41,35 @@ public class Cripto {
     public byte[] decryptData(byte[] data, PrivateKey priv) {
         byte[] decryptedData = null;
         try {
-            Cipher cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding","SunJCE");
+            Cipher cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding", "SunJCE");
             cipher.init(Cipher.DECRYPT_MODE, priv);
-            decryptedData =  cipher.doFinal(data);
-        } catch (Exception  ex) {
+            decryptedData = cipher.doFinal(data);
+        } catch (Exception ex) {
             System.err.println("Error xifrant: " + ex);
         }
         return decryptedData;
     }
 
     public KeyStore loadKeyStore(String ksFile, String ksPwd) throws Exception {
-       // KeyStore ks = KeyStore.getInstance("JCEKS");
+        // KeyStore ks = KeyStore.getInstance("JCEKS");
         KeyStore ks = KeyStore.getInstance(KeyStore.getDefaultType());
         //KeyStore ks = KeyStore.getInstance("RSA");
-        File f = new File (ksFile);
+        File f = new File(ksFile);
         if (f.isFile()) {
-            FileInputStream in = new FileInputStream (f);
+            FileInputStream in = new FileInputStream(f);
             ks.load(in, ksPwd.toCharArray());
         }
         return ks;
     }
 
-    public  SecretKey generateSecretKey(int n) throws NoSuchAlgorithmException {
+    public SecretKey generateSecretKey(int n) throws NoSuchAlgorithmException {
         KeyGenerator keyGenerator = KeyGenerator.getInstance("AES");
         keyGenerator.init(n);
         SecretKey secretKey = keyGenerator.generateKey();
         return secretKey;
     }
 
-    public PublicKey getPublicKey(String fitxer){
+    public PublicKey getPublicKey(String fitxer) {
 
         FileInputStream in = null;
         PublicKey pk = null;
@@ -77,7 +77,7 @@ public class Cripto {
             in = new FileInputStream(fitxer);
 
             CertificateFactory f = CertificateFactory.getInstance("X.509");
-            X509Certificate certificate = (X509Certificate)f.generateCertificate(in);
+            X509Certificate certificate = (X509Certificate) f.generateCertificate(in);
             pk = certificate.getPublicKey();
 
         } catch (FileNotFoundException e) {
@@ -94,9 +94,9 @@ public class Cripto {
     public PublicKey getPublicKey(KeyStore ks, String alias, String pwMyKey) throws KeyStoreException {
         KeyStore keyStore = ks;
 
-        char[] pass= pwMyKey.toCharArray();
+        char[] pass = pwMyKey.toCharArray();
 
-        Key i= null;
+        Key i = null;
         try {
             i = keyStore.getKey(alias, pass);
         } catch (KeyStoreException e) {
@@ -121,34 +121,23 @@ public class Cripto {
     }
 
 
-    public byte[] getSignature(String dades, PrivateKey pkey){
-        MessageDigest md = null;
+    public byte[] signData(String data, PrivateKey priv) {
+        byte[] signature = null;
+        byte[] data2 = data.getBytes(StandardCharsets.UTF_8);
         try {
-            md = MessageDigest.getInstance("SHA-256");
-            byte[] messageHash = md.digest(dades.getBytes(StandardCharsets.UTF_8));
-            Cipher cipher = Cipher.getInstance("RSA");
-            cipher.init(Cipher.ENCRYPT_MODE, pkey);
-            byte[] digitalSignature = cipher.doFinal(messageHash);
-
-            System.out.println(digitalSignature.toString());
-            return digitalSignature;
-        } catch (NoSuchAlgorithmException e) {
-            e.printStackTrace();
-        } catch (NoSuchPaddingException e) {
-            e.printStackTrace();
-        } catch (IllegalBlockSizeException e) {
-            e.printStackTrace();
-        } catch (BadPaddingException e) {
-            e.printStackTrace();
-        } catch (InvalidKeyException e) {
-            e.printStackTrace();
+            Signature signer = Signature.getInstance("SHA1withRSA");
+            signer.initSign(priv);
+            signer.update(data2);
+            signature = signer.sign();
+        } catch (Exception ex) {
+            System.err.println("Error signant les dades: " + ex);
         }
-        return null;
+        return signature;
     }
 
     public boolean validateSignature(String data, byte[] signature, PublicKey pub) {
         boolean isValid = false;
-        byte[] data2= data.getBytes(StandardCharsets.UTF_8);
+        byte[] data2 = data.getBytes(StandardCharsets.UTF_8);
         try {
             Signature signer = Signature.getInstance("SHA1withRSA");
             signer.initVerify(pub);
@@ -158,5 +147,59 @@ public class Cripto {
             System.err.println("Error validant les dades: " + ex);
         }
         return isValid;
+    }
+
+
+    public byte[][] encryptWrappedData(String data, PublicKey pub) {
+
+        // trransformo les dades a array de bytes
+        byte[] dataBytes = data.getBytes(StandardCharsets.UTF_8);
+
+        byte[][] encWrappedData = new byte[2][];
+        try {
+            //
+            KeyGenerator kgen = KeyGenerator.getInstance("AES");
+            kgen.init(128);
+            SecretKey sKey = kgen.generateKey();
+            Cipher cipher = Cipher.getInstance("AES");
+            cipher.init(Cipher.ENCRYPT_MODE, sKey);
+            byte[] encMsg = cipher.doFinal(dataBytes);
+            cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
+            cipher.init(Cipher.WRAP_MODE, pub);
+            byte[] encKey = cipher.wrap(sKey);
+            encWrappedData[0] = encMsg;
+            encWrappedData[1] = encKey;
+        } catch (Exception ex) {
+            System.err.println("Ha succeït un error xifrant: " + ex);
+        }
+        return encWrappedData;
+    }
+
+    public byte[] decryptWrappedData(byte[][] data, PublicKey pub) {
+
+        byte[] decryptedWrappedData = new byte[0];
+
+        try {
+
+            SecretKey skey = null;
+            Cipher c = Cipher.getInstance("RSA/ECB/PKCS1Padding");
+            c.init(Cipher.UNWRAP_MODE, pub);
+            skey = (SecretKey) c.unwrap(data[1], "RSA/ECB/PKCS1Padding", Cipher.SECRET_KEY);
+
+            byte[] decryptedData = null;
+
+                Cipher cipher = Cipher.getInstance("AES");
+                cipher.init(Cipher.DECRYPT_MODE, skey);
+                decryptedData = cipher.doFinal(data[0]);
+
+
+
+            return decryptedData;
+
+
+        } catch (Exception ex) {
+            System.err.println("Ha succeït un error xifrant: " + ex);
+        }
+        return null;
     }
 }

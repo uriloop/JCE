@@ -154,7 +154,7 @@ public class Main {
         } catch (KeyStoreException e) {
             e.printStackTrace();
         }
-        System.out.println("La clau pública de la clau 'lamevaclau' desada a la keystore 'keystore_oriol_lopez.ks' és= "+pkey);
+        System.out.println("La clau pública de la clau 'lamevaclau' desada a la keystore 'keystore_oriol_lopez.ks' és= \n"+pkey);
 
 
 
@@ -164,12 +164,43 @@ public class Main {
         System.out.println("Introdueix algun text per utilitzar com a dades que signarem digitalment amb la clau privada:");
         String dades = scanner.nextLine();
 
-        byte[] signatura= c.getSignature(dades, kp.getPrivate());
+        byte[] signatura= c.signData(dades, kp.getPrivate());
         System.out.println("La signatura és "+signatura);
 
-        boolean valid= c.validateSignature(dades,signatura, pkey);
 
+
+
+        System.out.println("---------------------------------");
+        System.out.println("Exercici 6");
+
+        boolean valid= c.validateSignature(dades,signatura, kp.getPublic());
         System.out.println("La validació retorna "+ valid);
+
+
+        System.out.println("---------------------------------");
+        System.out.println("Exercici 2.1");
+
+
+        System.out.println("Introdueix un text a encriptar amb clau embolcallada:");
+        String data= scanner.nextLine();
+
+        byte[][] dataEncriptada= c.encryptWrappedData(data, kp.getPublic());
+
+        System.out.println("El text encriptat és el següent:\n"+dataEncriptada.toString() );
+
+        System.out.println("Desencriptem el text: ");
+
+        byte[] decriptedData=c.decryptWrappedData(dataEncriptada,kp.getPublic());
+
+        String text= new String(decriptedData);
+
+        System.out.println(text);
+
+
+
+
+
+
     }
 
 
