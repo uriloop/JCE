@@ -51,9 +51,7 @@ public class Cripto {
     }
 
     public KeyStore loadKeyStore(String ksFile, String ksPwd) throws Exception {
-        // KeyStore ks = KeyStore.getInstance("JCEKS");
         KeyStore ks = KeyStore.getInstance(KeyStore.getDefaultType());
-        //KeyStore ks = KeyStore.getInstance("RSA");
         File f = new File(ksFile);
         if (f.isFile()) {
             FileInputStream in = new FileInputStream(f);
@@ -157,17 +155,23 @@ public class Cripto {
 
         byte[][] encWrappedData = new byte[2][];
         try {
-            //
+
             KeyGenerator kgen = KeyGenerator.getInstance("AES");
             kgen.init(128);
+            // generació de clau simetrica
             SecretKey sKey = kgen.generateKey();
+            // algorisme de xifrat asimetric
             Cipher cipher = Cipher.getInstance("AES");
+            // generem clau xifrada
             cipher.init(Cipher.ENCRYPT_MODE, sKey);
             byte[] encMsg = cipher.doFinal(dataBytes);
             cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
             cipher.init(Cipher.WRAP_MODE, pub);
+            //encriptem la clau
             byte[] encKey = cipher.wrap(sKey);
+            // dades xifrades
             encWrappedData[0] = encMsg;
+            // clau xifrada
             encWrappedData[1] = encKey;
         } catch (Exception ex) {
             System.err.println("Ha succeït un error xifrant: " + ex);
@@ -175,25 +179,31 @@ public class Cripto {
         return encWrappedData;
     }
 
-    public byte[] decryptWrappedData(byte[][] data, PublicKey pub) {
+
+    // data[0] = dades xifrades      data[1] = clau xifrada
+    public byte[] decryptWrappedData(byte[][] data, PrivateKey pri/*clau privada de B*/) {
 
         byte[] decryptedWrappedData = new byte[0];
+        Key key = null;
 
         try {
-
-            SecretKey skey = null;
-            Cipher c = Cipher.getInstance("AES");
-            c.init(Cipher.UNWRAP_MODE, pub);
-            skey = (SecretKey) c.unwrap(data[1], "AES", Cipher.SECRET_KEY);
+            // Algoritme de xifrat asimetric
+            Cipher c = Cipher.getInstance("RSA/ECB/PKCS1Padding", "SunJCE");
+            // desenwrappem amb la clau privada
+            c.init(Cipher.UNWRAP_MODE, pri);
+            // Clau simetrica
+            key =  c.unwrap(data[1], "AES", Cipher.SECRET_KEY);
 
             byte[] decryptedData = null;
-
+    // algoritme de clau simetrica
                 Cipher cipher = Cipher.getInstance("AES");
-                cipher.init(Cipher.DECRYPT_MODE, skey);
-                decryptedData = cipher.doFinal(data[0]);
+                // Afegim la clau desencriptada al cipher
+                cipher.init(Cipher.DECRYPT_MODE, key);
+                // retornem les dades desxifrades
+                return cipher.doFinal(data[0]);
 
 
-            return this.decryptData(data[0],(PrivateKey) skey);
+
 
 
         } catch (NoSuchPaddingException e) {
@@ -203,6 +213,8 @@ public class Cripto {
         } catch (NoSuchAlgorithmException e) {
             e.printStackTrace();
         } catch (BadPaddingException e) {
+            e.printStackTrace();
+        } catch (NoSuchProviderException e) {
             e.printStackTrace();
         } catch (InvalidKeyException e) {
             e.printStackTrace();

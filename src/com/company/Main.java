@@ -62,7 +62,7 @@ public class Main {
         System.out.println("Carreguem la keystore amb nom 'keystore_oriol_lopez.ks' ");
         KeyStore ks= null;
         try {
-            ks= c.loadKeyStore("../../keystore_oriol_lopez.ks","password");
+            ks= c.loadKeyStore("../../../keystore_oriol.ks","password");
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -123,7 +123,7 @@ public class Main {
         KeyStore.ProtectionParameter protParam = new KeyStore.PasswordProtection(pass);
         try {
             ks.setEntry("novaClau", skEntry, protParam);
-            FileOutputStream fos = new FileOutputStream("../../keystore_oriol_lopez.ks");
+            FileOutputStream fos = new FileOutputStream("../../../keystore_oriol_lopez.ks");
             ks.store(fos,pass);
         } catch (KeyStoreException e) {
             e.printStackTrace();
@@ -141,8 +141,8 @@ public class Main {
         System.out.println("---------------------------------");
         System.out.println("Exercici 3 ");
 
-        PublicKey pk = c.getPublicKey("../../jordi.cer");
-        System.out.println(" La clau publica del certificat 'jordi.cer' és= "+pk.toString());
+        PublicKey pk = c.getPublicKey("../../../uri.cert");
+        System.out.println(" La clau publica del certificat 'uri.cert' és= "+pk.toString());
 
         // write your code here
         System.out.println("---------------------------------");
@@ -190,7 +190,10 @@ public class Main {
 
         System.out.println("Desencriptem el text: ");
 
-        byte[] decriptedData=c.decryptWrappedData(dataEncriptada,kp.getPublic());
+        byte[] decriptedData= new byte[0];
+
+            decriptedData = c.decryptWrappedData(dataEncriptada,kp.getPrivate());
+
 
         String text= new String(decriptedData);
 
